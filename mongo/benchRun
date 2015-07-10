@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [ "$1" == "" ]; then
+    START=1
+    STOP=128
+    SECONDS=20
+else
+    START=$1
+    STOP=$1
+    SECONDS=20
+fi
+
+# x = benchRun( { ops: [{op: "insert", ns: "test.repro" + threads, doc: {_id: {"#OID":1} } } ], parallel: threads, seconds: '$SECONDS', writeCmd: true } ).insert
+
+echo '
+for (threads = '$START'; threads <= '$STOP'; threads *=2) {
+    for (count = 0; count < 2; count++) {
+        x = benchRun( { ops: [{op: "insert", ns: "test.repro" + threads, doc: {_id: {"#OID":1} }, writeCmd: true } ], parallel: threads, seconds: '$SECONDS' } ).insert
+        eval("db.test.repro" + threads + ".drop()")
+        print(threads + ":" + Math.round(x))
+    }
+}' | mongo

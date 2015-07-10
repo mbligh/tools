@@ -1,0 +1,2 @@
+#!/bin/sh
+killall -w mongod; rm -rf /data/db/* /journal/* ; ln -sf /journal/ /data/db/; ~/bin/md_rs $*

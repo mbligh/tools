@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec nohup geany -si $* > /dev/null 2> /dev/null &

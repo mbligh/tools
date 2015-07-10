@@ -1,0 +1,7 @@
+if [ -x $HOME/.bashrc ]; then 
+. $HOME/.bashrc
+fi
+ssh-add
+/usr/bin/setxkbmap -option 'ctrl:nocaps'
+export EDITOR=vi
+set -o vi

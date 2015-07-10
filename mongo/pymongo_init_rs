@@ -1,0 +1,20 @@
+#!/usr/bin/python
+import pymongo, time, datetime
+from pprint import pprint
+# from pymongo import ASCENDING, DESCENDING
+
+port = 5002
+
+hostnames = [ "ec2-52-10-86-174.us-west-2.compute.amazonaws.com",
+              "ec2-52-25-233-135.us-west-2.compute.amazonaws.com", 
+              "ec2-52-25-233-137.us-west-2.compute.amazonaws.com" ]
+
+hosts = [ pymongo.MongoClient(hostname, port=port) for hostname in hostnames ]
+primary = hosts[0]
+secondaries = hosts[1:]
+
+members = [ { "_id":idx, "host":hostnames[idx]+":%d" % port } for idx in range(len(hosts)) ]
+members[0]["priority"] = 100
+pprint(members)
+rsconfig = { "_id":"mjbtest", "members":members }
+primary.admin.command({"replSetInitiate": rsconfig })

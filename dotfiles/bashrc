@@ -1,0 +1,6 @@
+export PATH="$HOME/bin:$PATH"
+export PYTHONPATH="$HOME/bin:$PYTHONPATH"
+export LOCALE=C
+export LC_ALL=C
+export LANG=C
+unset HISTFILE

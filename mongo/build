@@ -1,0 +1,25 @@
+#!/bin/bash -e
+
+if [ "$1" == "" ]; then
+    TARGET=mongod
+else
+    TARGET=$1
+fi
+
+CPUS=`grep processor /proc/cpuinfo | wc -l`
+THREADS=$[CPUS*2]
+
+# -fno-inline-functions
+# CCFLAGS='-fno-omit-frame-pointer' 
+CCFLAGS=
+DEPS="--implicit-deps-unchanged"
+CACHE="$HOME/.scons-cache"
+
+if [ "$TARGET" == "reset" ]; then
+    TARGET=""
+    DEPS=""
+fi
+
+COMMAND="scons -j$THREADS CC=clang CXX=clang++ CCFLAGS=$CCFLAGS $DEPS --cache --cache-dir=$CACHE $TARGET"
+echo $COMMAND
+/usr/bin/nice -n 19 /usr/bin/ionice -c2 -n7 $COMMAND

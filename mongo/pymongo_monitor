@@ -1,0 +1,68 @@
+#!/usr/bin/python
+import pymongo, time, datetime, re, pytz
+from dateutil import tz
+from pprint import pprint
+# from pymongo import ASCENDING, DESCENDING
+
+epoch = datetime.datetime.utcfromtimestamp(0)
+port = 5002
+DEFAULT_PORT = 27017
+
+hostnames = [ "ec2-52-10-86-174.us-west-2.compute.amazonaws.com",
+              "ec2-52-25-233-135.us-west-2.compute.amazonaws.com", 
+              "ec2-52-25-233-137.us-west-2.compute.amazonaws.com" ]
+
+#######################################
+
+class ReplicaHost:
+    def __init__(self, mstatus):
+        self.mstatus = mstatus
+        self.name = self.mstatus["name"]
+        self.short_name = re.sub("\..*", "", self.name)
+        self.optime = self.mstatus["optimeDate"]
+        self.id = self.mstatus["_id"]
+        self.state = self.mstatus["stateStr"]
+        self.primary = self.state == "PRIMARY"
+        self.c = pymongo.MongoClient(self.name)
+        self.server_info = self.c.server_info()
+    
+    def server_status(self):
+        return self.c.admin.command('serverStatus')
+
+    def storage_engine(self):
+        return self.server_status()["storageEngine"]["name"]
+    
+    def oplog_stats(self):
+        return self.c.local.command('collstats', 'oplog.rs')
+
+    def oplog_size(self):
+        return self.oplog_stats()['size']/(1024*1024)
+
+    def oplog_max_size(self):
+        return self.oplog_stats()['maxSize']/(1024*1024)
+        
+    def __repr__(self):
+        return "%d %20s %10s" % (self.id, self.short_name, self.storage_engine())
+
+#######################################
+
+rs = pymongo.MongoReplicaSetClient(hostnames, port=port, replicaset="mjbtest")
+
+rs.database_names()  # Force it to block until primary is initialized
+assert rs.primary is not None
+
+status = rs.admin.command("replSetGetStatus")
+mstatus = dict((m["_id"], ReplicaHost(m)) for m in status["members"])
+
+primary = [x for x in mstatus.values() if x.primary][0]
+secondaries = [x for x in mstatus.values() if not x.primary]
+
+print
+print status["date"].replace(tzinfo=pytz.UTC).astimezone(tz.tzlocal())
+print "%s oplog:%5d/%-5d" % (primary, primary.oplog_size(), primary.oplog_max_size())
+for secondary in secondaries:
+    seconds = int((primary.optime - secondary.optime).total_seconds())
+    print "%s oplog:%5d/%-5d offset:%d" % (secondary, secondary.oplog_size(), secondary.oplog_max_size(), seconds)
+
+
+

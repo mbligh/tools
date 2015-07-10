@@ -1,0 +1,17 @@
+#!/usr/bin/python
+import pymongo, time, datetime
+from pprint import pprint
+# from pymongo import ASCENDING, DESCENDING
+
+
+hostnames = [ "localhost" ] 
+
+hosts = [ pymongo.MongoClient(hostname) for hostname in hostnames ]
+primary = hosts[0]
+secondaries = hosts[1:]
+
+members = [ { "_id":idx, "host":hostnames[idx] } for idx in range(len(hosts)) ]
+members[0]["priority"] = 100
+pprint(members)
+rsconfig = { "_id":"mjbtest", "members":members }
+primary.admin.command({"replSetInitiate": rsconfig })

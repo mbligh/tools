@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cformat format
+exec python ~/src/kernel-tools/codereview/upload.py -y --jira_user martin.bligh --nojira $*

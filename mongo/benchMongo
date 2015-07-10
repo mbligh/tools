@@ -1,0 +1,31 @@
+#!/bin/bash -e
+
+killall loadsrv mongod geeqie || echo > /dev/null
+
+cd ~/src/mongo
+scons -j32 
+
+killall -9 loadsrv mongod geeqie || echo > /dev/null
+rm -rf /data/db/*
+
+rm -f /data/mongodb.log
+ulimit -n 2048
+# --setParameter tcmallocMaxTotalThreadCacheBytes=268435456
+MONGOD="/home/mbligh/src/mongo/mongod --maxConns 512 --slowms 5000 --logpath /data/mongodb.log --setParameter tcmallocMaxTotalThreadCacheBytes=268435456 --storageEngine=wiredTiger"
+# MONGOD="/home/mbligh/src/mongo/mongod --maxConns 512 --slowms 5000 --logpath /data/mongodb.log "
+echo Starting mongod ...
+echo $MONGOD
+$MONGOD &
+
+sleep 2
+cd ~/src/WorkLoad
+echo Making load ...
+make
+LOAD="./loadsrv -h localhost:27017 -p 500 -d 1500"
+echo Starting load ...
+echo $LOAD
+time $LOAD || echo $?
+python genstats.py localhost > data.csv
+# python plotter.py data.csv
+# geeqie data.csv.ops.png
+cat data.csv

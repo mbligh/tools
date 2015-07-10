@@ -1,0 +1,3 @@
+#!/bin/bash
+~/bin/mongod --fork --logpath /data/mongo.log --replSet mjbtest --storageEngine wiredTiger $*
+pymongo_init_rs_single

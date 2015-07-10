@@ -1,0 +1,9 @@
+#!/bin/bash
+if [ -f ./mongod ]; then
+    MONGOD=`realpath ./mongod`
+else
+    MONGOD=~/bin/mongod
+fi
+echo $MONGOD
+$MONGOD --fork --logpath /data/mongo.log  --storageEngine wiredTiger $*
+sleep 5

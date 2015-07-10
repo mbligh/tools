@@ -1,0 +1,103 @@
+#!/bin/bash -e
+
+INSTALL="/usr/bin/apt-get install -y"
+REMOVE="/usr/bin/apt-get remove -y"
+apt-get update
+apt-get upgrade -y
+
+# ----------------------- DIRECTORIES ----------------------------
+for BASHRC in /root/.bashrc $HOME/.bashrc
+do
+	if [ ! -e $BASHRC ]; then
+		cat > $BASHRC <<-EOF
+		export PATH="\$HOME/bin:\$PATH"
+		export PYTHONPATH="\$HOME/bin:\$PYTHONPATH"
+		export LOCALE=C
+		export LC_ALL=C
+		export LANG=C
+		unset HISTFILE
+		EOF
+		chmod 755 $BASHRC
+	fi
+done
+
+for BASH_PROFILE in /root/.bash_profile $HOME/.bash_profile
+do
+	if [ ! -e $BASH_PROFILE ]; then
+		cat > $BASH_PROFILE <<-EOF
+		if [ -x \$HOME/.bashrc ]; then 
+			. \$HOME/.bashrc
+		fi
+		ssh-add
+		/usr/bin/setxkbmap -option 'ctrl:nocaps'
+		export EDITOR=vi
+		set -o vi
+		EOF
+		chmod 755 $BASH_PROFILE
+	fi
+done
+
+if [ $HOME != "/root" ]; then
+	if [ ! -e $HOME/tmp ]; then
+		if [ -e $HOME/Downloads]; then
+			mv $HOME/Downloads $HOME/tmp
+		else
+			mkdir $HOME/tmp
+		fi
+		ln -s $HOME/tmp $HOME/Downloads
+	fi
+fi
+
+# ----------------------- PACKAGES ----------------------------
+$INSTALL mailutils graphviz geeqie tshark wireshark nfs-common
+$INSTALL openssh-server ubuntu-restricted-extras gdisk lame audacity easytag mediainfo chromium-browser
+$INSTALL evince sysstat xterm xauth realpath
+apt-get --purge autoremove -y mint-stylish-addon mint-search-addon
+$REMOVE anacron
+
+# ------------------------ DEVELOPMENT ----------------------------
+$INSTALL libunwind8 libunwind8-dbg libunwind8-dev linux-tools-common
+$INSTALL mercurial git geany patch scons
+$INSTALL gcc g++ build-essential curl flex bison libpcap-dev libtool autoconf automake clang
+$INSTALL golang
+$INSTALL python-pip php5-json python-dateutil python-tk python-numpy python-matplotlib python-dev python-webpy
+
+# ------------------------ FONTS -------------------------------
+$INSTALL fonts-inconsolata console-terminus ttf-dejavu xfonts-terminus ttf-ubuntu-font-family ttf-xfree86-nonfree
+$INSTALL xfonts-traditional # And let xfonts-traditional configured fixed to the traditional style
+
+# ----------------------- DATABASE ----------------------------
+$INSTALL mysql-client python-mysqldb
+$INSTALL libev-dev
+pip install cassandra-driver blist
+
+# ----------------------- FONTS ----------------------------
+cd /etc/fonts/conf.d/
+rm -f 70-no-bitmaps.conf
+cat > /etc/fonts/conf.d/50-enable-fixed.conf <<EOF
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+    <selectfont>
+        <acceptfont>
+            <pattern>
+                <patelt name="family"><string>fixed</string></patelt>
+            </pattern>
+        </acceptfont>
+    </selectfont>
+</fontconfig>
+EOF
+dpkg-reconfigure fontconfig
+
+# ----------------------- NUKE IPv6 ----------------------------
+cat > /etc/sysctl.d/99-disableIPv6.conf <<EOF
+# IPv6
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+EOF
+sysctl -p
+
+# ----------------------- SUDOERS ------------------------------
+if [ $SUDO_USER != "" ]; then
+	echo $SUDO_USER ALL=(ALL) NOPASSWD: ALL > /etc/sudoers.d/$SUDO_USER
+fi
